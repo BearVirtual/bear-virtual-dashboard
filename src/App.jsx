@@ -70,21 +70,21 @@ const THEMES = {
 
     // Accent yellow — used ONLY for Key Focus badge, nowhere else
     accent:      "#FFED4A",
-    accentText:  "#111111",
+    accentText:  "#000000",
 
     // Pillar tags — tinted pills on white, all readable
-    p1: { bg:"#EBF0FC", bd:"#2A44B9", tx:"#1a318a" },  // Tips — denim
-    p2: { bg:"#E8EDF5", bd:"#1E3248", tx:"#1E3248" },  // B&A — prussian
-    p3: { bg:"#EDF3FA", bd:"#4a78aa", tx:"#2d5880" },  // BTS — blue grey
-    p4: { bg:"#FFF8DC", bd:"#b89600", tx:"#7a6400" },  // Social proof — amber
-    p5: { bg:"#FCE8E8", bd:"#c0392b", tx:"#922b21" },  // Hot takes — red
-    p6: { bg:"#EFE8F8", bd:"#6c3483", tx:"#512e6b" },  // CTAs — purple
+    p1: { bg:"#EBF0FC", bd:"#2A44B9", tx:"#111111" },  // Tips — denim
+    p2: { bg:"#E8EDF5", bd:"#1E3248", tx:"#111111" },  // B&A — prussian
+    p3: { bg:"#EDF3FA", bd:"#4a78aa", tx:"#111111" },  // BTS — blue grey
+    p4: { bg:"#FFF8DC", bd:"#b89600", tx:"#111111" },  // Social proof — amber
+    p5: { bg:"#FCE8E8", bd:"#c0392b", tx:"#111111" },  // Hot takes — red
+    p6: { bg:"#EFE8F8", bd:"#6c3483", tx:"#111111" },  // CTAs — purple
 
     // Calendar day chips — 4 distinct but all on-brand
     d1: { bg:"#1E3248", tx:"#FFFFFF" },  // Mon — prussian + white
     d2: { bg:"#2A44B9", tx:"#FFFFFF" },  // Wed — denim + white
     d3: { bg:"#1E3248", tx:"#FFFFFF" },  // Fri — prussian + white ✓ 13:1
-    d4: { bg:"#EBF0FC", tx:"#1E3248" },  // Sun — light tint + prussian
+    d4: { bg:"#EBF0FC", tx:"#111111" },  // Sun — light tint + black
   },
 
   // ── CLIENT THEME TEMPLATE ────────────────────────────────────────────────
@@ -122,17 +122,17 @@ const THEMES = {
     accentText:  "#000000",
 
     // Pillar tag colors — adjust to client palette
-    p1: { bg:"#EEF4FF", bd:"#3366CC", tx:"#1a4499" },
-    p2: { bg:"#EEF8EE", bd:"#2d6a4f", tx:"#1e4d38" },
-    p3: { bg:"#FFF8EE", bd:"#cc7700", tx:"#995800" },
-    p4: { bg:"#FFEEF8", bd:"#9b2277", tx:"#731a59" },
-    p5: { bg:"#FDE8E8", bd:"#c0392b", tx:"#922b21" },
-    p6: { bg:"#F0E8F8", bd:"#6c3483", tx:"#512e6b" },
+    p1: { bg:"#EEF4FF", bd:"#3366CC", tx:"#111111" },
+    p2: { bg:"#EEF8EE", bd:"#2d6a4f", tx:"#111111" },
+    p3: { bg:"#FFF8EE", bd:"#cc7700", tx:"#111111" },
+    p4: { bg:"#FFEEF8", bd:"#9b2277", tx:"#111111" },
+    p5: { bg:"#FDE8E8", bd:"#c0392b", tx:"#111111" },
+    p6: { bg:"#F0E8F8", bd:"#6c3483", tx:"#111111" },
 
     // Calendar day chips
-    d1: { bg:"#000000", tx:"#FFD700" },
+    d1: { bg:"#000000", tx:"#FFFFFF" },
     d2: { bg:"#333333", tx:"#FFFFFF" },
-    d3: { bg:"#F0F0F0", tx:"#222222" },
+    d3: { bg:"#F0F0F0", tx:"#111111" },
     d4: { bg:"#000000", tx:"#FFFFFF" },
   },
 };
@@ -154,7 +154,7 @@ const C = new Proxy({}, { get: (_, k) => _theme[k] || _theme.primary });
 const pillarColor = (id) => {
   const t = _theme;
   const map = { 1:t.p1, 2:t.p2, 3:t.p3, 4:t.p4, 5:t.p5, 6:t.p6 };
-  return map[id] || { bg:"#f5f5f5", bd:"#ccc", tx:"#333" };
+  return map[id] || { bg:"#f5f5f5", bd:"#ccc", tx:"#111111" };
 };
 
 // Day style helper
@@ -464,7 +464,7 @@ function ImageUpload({ post, onUpdate, canUpload, canApprove }) {
   const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef();
 
-  const statusColors = { none:{bg:"#f5f5f5",tx:"#999",label:"No Image"}, uploaded:{bg:"#fdf3e3",tx:"#111111",label:"Uploaded"}, approved:{bg:"#eef8f2",tx:"#111111",label:"✓ Approved"}, rejected:{bg:"#fde8e8",tx:"#111111",label:"✗ Needs Revision"} };
+  const statusColors = { none:{bg:"#f5f5f5",tx:"#111111",label:"No Image"}, uploaded:{bg:"#fdf3e3",tx:"#111111",label:"Uploaded"}, approved:{bg:"#eef8f2",tx:"#111111",label:"✓ Approved"}, rejected:{bg:"#fde8e8",tx:"#111111",label:"✗ Needs Revision"} };
   const st = statusColors[post.imageStatus] || statusColors.none;
 
   const handleFile = (e) => {
@@ -891,9 +891,9 @@ export default function App() {
               <div style={{display:"flex",gap:9,alignItems:"flex-start"}}>
                 <span style={{fontSize:16,marginTop:1}}>🎯</span>
                 <div>
-                  <div style={{fontSize:12,color:"#111111",fontWeight:700,letterSpacing:"1px",marginBottom:3}}>WEEK {data.weeks[weekIdx].week} OBJECTIVE</div>
+                  <div style={{fontSize:12,color:"#FFFFFF",fontWeight:700,letterSpacing:"1px",marginBottom:3}}>WEEK {data.weeks[weekIdx].week} OBJECTIVE</div>
                   <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{data.weeks[weekIdx].obj}</div>
-                  <div style={{fontSize:12,color:"#111111",lineHeight:1.6,fontStyle:"italic"}}>{data.weeks[weekIdx].theme}</div>
+                  <div style={{fontSize:12,color:"#FFFFFF",lineHeight:1.6,fontStyle:"italic"}}>{data.weeks[weekIdx].theme}</div>
                 </div>
               </div>
             </div>
@@ -972,8 +972,8 @@ export default function App() {
             <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>Stories Strategy</h2>
             <p style={{color:"#111111",fontSize:13,marginBottom:14,fontStyle:"italic"}}>3–5 Stories per week. Click any category to expand and edit ideas.</p>
             <div style={{background:_theme.headerBg,color:_theme.textOnDark,borderRadius:12,padding:"13px 16px",marginBottom:14}}>
-              <div style={{fontSize:12,color:"#111111",fontWeight:700,letterSpacing:"1px",marginBottom:5}}>POSTS VS STORIES</div>
-              <p style={{fontSize:13,lineHeight:1.7,margin:0}}><strong style={{color:"#111111"}}>Posts are billboards. Stories are text messages.</strong> Posts build your audience and searchable archive. Stories maintain your relationship with the audience you already have. Don't try to grow from Stories — use them for depth.</p>
+              <div style={{fontSize:12,color:"#FFFFFF",fontWeight:700,letterSpacing:"1px",marginBottom:5}}>POSTS VS STORIES</div>
+              <p style={{fontSize:13,lineHeight:1.7,margin:0}}><strong style={{color:"#FFFFFF"}}>Posts are billboards. Stories are text messages.</strong> Posts build your audience and searchable archive. Stories maintain your relationship with the audience you already have. Don't try to grow from Stories — use them for depth.</p>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>
               {[{t:"Stories disappear in 24 hours",d:"Lower stakes, more casual, don't need to be polished. A quick BTS photo works fine in a Story — it would look out of place in your feed."},
@@ -1039,10 +1039,10 @@ export default function App() {
             <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>Hashtag Strategy</h2>
             <p style={{color:"#111111",fontSize:13,marginBottom:14,fontStyle:"italic"}}>Instagram enforces a 5-hashtag limit as of December 2025. Make every slot count.</p>
             <div style={{background:_theme.headerBg,color:_theme.textOnDark,borderRadius:12,padding:"13px 16px",marginBottom:14}}>
-              <div style={{fontSize:12,color:"#111111",fontWeight:700,letterSpacing:"1px",marginBottom:5}}>THE 2026 RULE</div>
-              <p style={{fontSize:13,lineHeight:1.7,margin:"0 0 6px"}}><strong style={{color:"#111111"}}>5 hashtags max — platform enforced.</strong> Hashtags are now classification signals, not traffic sources. Instagram reads them to understand who should see your content. Choose the 5 most precise tags for each specific post.</p>
-              <p style={{fontSize:12,color:"#111111",fontStyle:"italic",margin:0}}>Post count threshold still matters: for new accounts, smaller hashtags give you a better signal-to-noise ratio. But precision beats volume — a well-matched 500k tag beats a vague 5k tag.</p>
-              <p style={{fontSize:12,color:"#111111",fontStyle:"italic",margin:"8px 0 0"}}>⚠️ Note: post counts below are estimates. Always verify in the Instagram app: Search → Tags → type the hashtag to see the current count.</p>
+              <div style={{fontSize:12,color:"#FFFFFF",fontWeight:700,letterSpacing:"1px",marginBottom:5}}>THE 2026 RULE</div>
+              <p style={{fontSize:13,lineHeight:1.7,margin:"0 0 6px",color:"#FFFFFF"}}><strong>5 hashtags max — platform enforced.</strong> Hashtags are now classification signals, not traffic sources. Instagram reads them to understand who should see your content. Choose the 5 most precise tags for each specific post.</p>
+              <p style={{fontSize:12,color:"#FFFFFF",fontStyle:"italic",margin:0}}>Post count threshold still matters: for new accounts, smaller hashtags give you a better signal-to-noise ratio. But precision beats volume — a well-matched 500k tag beats a vague 5k tag.</p>
+              <p style={{fontSize:12,color:"#FFFFFF",fontStyle:"italic",margin:"8px 0 0"}}>⚠️ Note: post counts below are estimates. Always verify in the Instagram app: Search → Tags → type the hashtag to see the current count.</p>
             </div>
             {["brand","micro","niche","avoid"].map(tier=>{
               const meta = TIER_META[tier];
