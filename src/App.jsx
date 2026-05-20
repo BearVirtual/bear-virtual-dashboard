@@ -415,7 +415,9 @@ Return this exact structure:
 
 Brand voice: direct, warm, no jargon, small-business-owner to small-business-owner. Post ideas should be specific, actionable, and tied to the pillar's job (Build Trust / Drive Action / Show Personality). Hook formulas should use [brackets] for the parts the user fills in.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  // Calls /api/claude → redirected to netlify/functions/claude.js by netlify.toml
+  // The function adds the Anthropic API key server-side — key never touches the browser
+  const res = await fetch("/api/claude", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -424,6 +426,12 @@ Brand voice: direct, warm, no jargon, small-business-owner to small-business-own
       messages: [{ role: "user", content: prompt }]
     })
   });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `API error ${res.status}`);
+  }
+
   const data = await res.json();
   const text = data.content?.find(b => b.type === "text")?.text || "";
   const clean = text.replace(/```json|```/g,"").trim();
