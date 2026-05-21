@@ -582,17 +582,19 @@ export default function App() {
 
   const confirmRegen = async () => {
     setShowRegenModal(false);
-    // Save the pillar edits first — this updates names/descriptions immediately
-    // Calendar posts reference pillars by ID so pillar name changes show up at once
-    upd({pillars: draftPillars});
+    // Capture pillars in local var BEFORE clearing state — state clears are async
+    const pillarsToSave = draftPillars;
+    // Save edits and close edit mode immediately so UI feels responsive
+    upd({pillars: pillarsToSave});
     setEditMode(false);
     setDraftPillars(null);
     setAiLoading(true);
     setAiError(null);
     try {
-      const result = await regeneratePillarContent(draftPillars);
+      // Use local var — draftPillars state is null by now
+      const result = await regeneratePillarContent(pillarsToSave);
       if (!result?.pillars) throw new Error("No pillars returned from API");
-      // Merge regenerated ideas back into the saved pillars
+      // Merge regenerated ideas back into the already-saved pillars
       upd(prev => ({
         pillars: prev.pillars.map(p => {
           const regen = result.pillars.find(r => r.id === p.id);
