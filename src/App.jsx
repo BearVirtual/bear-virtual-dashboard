@@ -582,20 +582,31 @@ export default function App() {
 
   const confirmRegen = async () => {
     setShowRegenModal(false);
-    upd({pillars:draftPillars});
+    // Save the pillar edits first — this updates names/descriptions immediately
+    // Calendar posts reference pillars by ID so pillar name changes show up at once
+    upd({pillars: draftPillars});
     setEditMode(false);
     setDraftPillars(null);
     setAiLoading(true);
     setAiError(null);
     try {
       const result = await regeneratePillarContent(draftPillars);
-      const updated = data.pillars.map(p => {
-        const regen = result.pillars?.find(r=>r.id===p.id);
-        return regen ? { ...draftPillars.find(d=>d.id===p.id), ...regen } : {...draftPillars.find(d=>d.id===p.id)||p};
-      });
-      upd({pillars:updated});
+      if (!result?.pillars) throw new Error("No pillars returned from API");
+      // Merge regenerated ideas back into the saved pillars
+      upd(prev => ({
+        pillars: prev.pillars.map(p => {
+          const regen = result.pillars.find(r => r.id === p.id);
+          return regen ? {
+            ...p,
+            postIdeas:    regen.postIdeas    || p.postIdeas,
+            storyIdeas:   regen.storyIdeas   || p.storyIdeas,
+            hookFormulas: regen.hookFormulas  || p.hookFormulas,
+          } : p;
+        })
+      }));
     } catch(e) {
-      setAiError("AI regeneration failed — your pillar edits were saved, but suggestions weren't updated. Try again from Edit Mode.");
+      console.error("Regeneration error:", e);
+      setAiError(`Regeneration failed: ${e.message}. Check that your Netlify function is deployed and ANTHROPIC_API_KEY is set.`);
     }
     setAiLoading(false);
   };
@@ -702,11 +713,11 @@ export default function App() {
                 <span style={{fontSize:18,fontWeight:700,color:"#FFFFFF"}}>🐻 Bear Virtual</span>
                 <span style={{fontSize:12,color:"#FFFFFF",fontFamily:"monospace",letterSpacing:"2px"}}>INSTAGRAM STRATEGY</span>
               </div>
-              <p style={{margin:"0 0 12px",color:"#FFFFFF",fontSize:12,fontStyle:"italic"}}>Den System · 4 posts/week + 3–5 stories · Role: <strong style={{color:"#FFFFFF"}}>{role.label}</strong></p>
+              <p style={{margin:"0 0 12px",color:"#FFFFFF",fontSize:12,fontStyle:"italic"}}>Den System · {(data.kpis?.rhythm || "4 posts/week + 3–5 stories")} · Role: <strong style={{color:"#FFFFFF"}}>{role.label}</strong></p>
             </div>
             <div style={{display:"flex",gap:7,alignItems:"center",paddingBottom:12}}>
               {aiLoading && <span style={{fontSize:12,color:"#111111",fontStyle:"italic"}}>🤖 Regenerating...</span>}
-              {aiError && <span style={{fontSize:12,color:"#111111",maxWidth:180}}>{aiError}</span>}
+              {aiError && <span style={{fontSize:12,color:"#FFFFFF",maxWidth:200,fontStyle:"italic"}}>{aiError}</span>}
               {role.canEditPillars && !editMode && (
                 <button style={{padding:"6px 12px",borderRadius:6,border:"1px solid rgba(255,255,255,0.5)",cursor:"pointer",fontSize:12,fontFamily:_theme.font,fontWeight:600,background:"rgba(255,255,255,0.15)",color:"#FFFFFF",transition:"all 0.15s"}} onClick={enterEditMode}>✏️ Edit Mode</button>
               )}
@@ -754,7 +765,7 @@ export default function App() {
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:16}}>
               <div>
-                <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:0}}>Content Pillars</h2>
+                <h2 style={{fontSize:18,fontWeight:700,color:"#111111",margin:0}}>Content Pillars</h2>
                 <p style={{color:"#111111",fontSize:13,margin:"4px 0 0",fontStyle:"italic"}}>Click any card to expand ideas. {editMode&&"Edit mode active — modify pillar details below."}</p>
               </div>
             </div>
@@ -874,7 +885,7 @@ export default function App() {
         {/* ══ CALENDAR ══ */}
         {tab==="calendar" && (
           <div>
-            <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>30-Day Starter Calendar</h2>
+            <h2 style={{fontSize:18,fontWeight:700,color:"#111111",margin:"0 0 4px"}}>30-Day Starter Calendar</h2>
             <p style={{color:"#111111",fontSize:13,marginBottom:18,fontStyle:"italic"}}>One Key Focus per week. Every other post supports it from a different angle. Click a post to expand.</p>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7,marginBottom:16}}>
               {data.weeks.map((w,i)=>(
@@ -913,9 +924,9 @@ export default function App() {
                           {p.kf && <span style={{fontSize:12,fontWeight:700,background:_theme.accent,padding:"2px 8px",borderRadius:20,color:_theme.accentText}}>🎯 KEY FOCUS</span>}
                           <span style={{...pill("#111111",pc.bg)}}>{pillar.emoji} {pillar.name}</span>
                           <span style={{fontSize:12,color:"#111111",fontStyle:"italic"}}>{p.fmt}</span>
-                          {p.imageStatus==="approved" && <span style={{...pill("#2d6a4f","#eef8f2")}}>✓ Image Approved</span>}
+                          {p.imageStatus==="approved" && <span style={{...pill("#111111","#eef8f2")}}>✓ Image Approved</span>}
                           {p.imageStatus==="uploaded" && <span style={{...pill("#111111","#EBF0FC")}}>📎 Image Pending</span>}
-                          {p.imageStatus==="rejected" && <span style={{...pill("#9b2226","#fde8e8")}}>✗ Revision Needed</span>}
+                          {p.imageStatus==="rejected" && <span style={{...pill("#111111","#fde8e8")}}>✗ Revision Needed</span>}
                         </div>
                         <div style={{fontSize:12,color:"#111111",fontStyle:"italic",marginBottom:3}}>Angle: {p.angle}</div>
                         <div style={{fontSize:13,fontWeight:600,color:"#111111",lineHeight:1.4}}>"{p.hook}"</div>
@@ -969,7 +980,7 @@ export default function App() {
         {/* ══ STORIES ══ */}
         {tab==="stories" && (
           <div>
-            <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>Stories Strategy</h2>
+            <h2 style={{fontSize:18,fontWeight:700,color:"#111111",margin:"0 0 4px"}}>Stories Strategy</h2>
             <p style={{color:"#111111",fontSize:13,marginBottom:14,fontStyle:"italic"}}>3–5 Stories per week. Click any category to expand and edit ideas.</p>
             <div style={{background:_theme.headerBg,color:_theme.textOnDark,borderRadius:12,padding:"13px 16px",marginBottom:14}}>
               <div style={{fontSize:12,color:"#FFFFFF",fontWeight:700,letterSpacing:"1px",marginBottom:5}}>POSTS VS STORIES</div>
@@ -1036,7 +1047,7 @@ export default function App() {
         {/* ══ HASHTAGS ══ */}
         {tab==="hashtags" && (
           <div>
-            <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>Hashtag Strategy</h2>
+            <h2 style={{fontSize:18,fontWeight:700,color:"#111111",margin:"0 0 4px"}}>Hashtag Strategy</h2>
             <p style={{color:"#111111",fontSize:13,marginBottom:14,fontStyle:"italic"}}>Instagram enforces a 5-hashtag limit as of December 2025. Make every slot count.</p>
             <div style={{background:_theme.headerBg,color:_theme.textOnDark,borderRadius:12,padding:"13px 16px",marginBottom:14}}>
               <div style={{fontSize:12,color:"#FFFFFF",fontWeight:700,letterSpacing:"1px",marginBottom:5}}>THE 2026 RULE</div>
@@ -1081,7 +1092,7 @@ export default function App() {
         {/* ══ REPURPOSING ══ */}
         {tab==="repurpose" && (
           <div>
-            <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>Content Repurposing Map</h2>
+            <h2 style={{fontSize:18,fontWeight:700,color:"#111111",margin:"0 0 4px"}}>Content Repurposing Map</h2>
             <p style={{color:"#111111",fontSize:13,marginBottom:18,fontStyle:"italic"}}>Build once on Instagram. Let it travel. One post becomes five.</p>
             {[
               {from:"Instagram Carousel",to:"Blog Post",icon:"📝",how:"A 5-slide carousel = a 400-word blog post outline. Expand each slide into a paragraph. Add intro and conclusion. Publish to /blog."},
@@ -1095,12 +1106,12 @@ export default function App() {
                 <div style={{display:"flex",alignItems:"stretch"}}>
                   <div style={{background:_theme.primary,color:_theme.primaryText,padding:"12px 14px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:110,textAlign:"center",flexShrink:0}}>
                     <div style={{fontSize:16,marginBottom:2}}>{r.icon}</div>
-                    <div style={{fontSize:12,color:"#111111",fontWeight:700,letterSpacing:"1px",marginBottom:2}}>FROM</div>
+                    <div style={{fontSize:12,color:"#FFFFFF",fontWeight:700,letterSpacing:"1px",marginBottom:2}}>FROM</div>
                     <div style={{fontSize:12,fontWeight:700}}>{r.from}</div>
                   </div>
                   <div style={{display:"flex",alignItems:"center",padding:"0 9px",color:"#111111",fontSize:16,flexShrink:0}}>→</div>
                   <div style={{background:"#f0f8f2",padding:"12px 14px",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:100,textAlign:"center",flexShrink:0}}>
-                    <div style={{fontSize:12,color:"#111111",fontWeight:700,letterSpacing:"1px",marginBottom:2}}>TO</div>
+                    <div style={{fontSize:12,color:"#FFFFFF",fontWeight:700,letterSpacing:"1px",marginBottom:2}}>TO</div>
                     <div style={{fontSize:12,fontWeight:700,color:"#111111"}}>{r.to}</div>
                   </div>
                   <div style={{padding:"12px 14px",flex:1,display:"flex",alignItems:"center"}}>
@@ -1114,53 +1125,181 @@ export default function App() {
 
         {/* ══ SETUP ══ */}
         {tab==="setup" && (
-          <div>
-            <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>Account Setup Checklist</h2>
-            <p style={{color:"#111111",fontSize:13,marginBottom:18,fontStyle:"italic"}}>Complete before publishing post 1.</p>
-            {[
-              {label:"Switch to Business Account",detail:"Settings > Account > Switch to Professional Account"},
-              {label:"Profile photo: your headshot",detail:"Same as the website. Not the logo. People hire people."},
-              {label:"Display name",detail:"Bear Virtual  —or—  Bear Virtual | Web & Content for Small Biz"},
-              {label:"Bio (150 chars max)",detail:"Websites + content for small businesses 🐻 | Home services · wellness · beauty | Book a free discovery call 👇"},
-              {label:"Link in bio",detail:"Linktree with 3 links: Free Discovery Call · Services · FAQ"},
-              {label:"Story Highlights (day 1)",detail:"Our Work · Services · How It Works · Client Wins"},
-              {label:"Connect to Facebook Page",detail:"Settings > Linked Accounts > Facebook. Enables auto-repost."},
-              {label:"Set up Meta Business Suite",detail:"business.facebook.com — scheduling, insights, cross-posting"},
-            ].map((item,i)=><SetupItem key={i} {...item}/>)}
-          </div>
+          <SetupTab data={data} upd={upd} role={role} theme={_theme} />
         )}
 
         {/* ══ KPIs ══ */}
         {tab==="kpis" && (
-          <div>
-            <h2 style={{fontSize:18,fontWeight:700,color:_theme.primaryText,margin:"0 0 4px"}}>KPIs & Success Metrics</h2>
-            <p style={{color:"#111111",fontSize:13,marginBottom:18,fontStyle:"italic"}}>Don't chase follower count. Saves, DMs, and link clicks are your real signals.</p>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              {[{label:"Month 1 Goal",value:"1 discovery call booked",note:"Set a sustainable baseline. Build from there.",color:"#111111",bg:"#fdf5ee"},
-                {label:"Best Signal",value:"Post Saves",note:"Saves = 'I'm coming back to this.' Far better than likes.",color:"#111111",bg:"#eef8f2"},
-                {label:"Posting Rhythm",value:"4 posts + 3–5 stories/week",note:"Mon·Wed·Fri·Sun for feed. Stories fill the gaps.",color:"#111111",bg:"#eef2f8"},
-                {label:"Watch This",value:"Link-in-bio clicks",note:"Profile visits = vanity. Link clicks = moving toward booking.",color:"#111111",bg:"#fdf0ea"},
-              ].map((k,i)=>(
-                <div key={i} style={{background:k.bg,border:`2px solid ${k.color}20`,borderRadius:12,padding:14}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#111111",letterSpacing:"1px",marginBottom:5}}>{k.label.toUpperCase()}</div>
-                  <div style={{fontSize:14,fontWeight:700,color:"#111111",marginBottom:5}}>{k.value}</div>
-                  <p style={{fontSize:12,color:"#111111",margin:0,lineHeight:1.5}}>{k.note}</p>
-                </div>
-              ))}
+          <KPITab data={data} upd={upd} role={role} theme={_theme} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── SETUP TAB ────────────────────────────────────────────────────────────────
+function SetupTab({ data, upd, role, theme }) {
+  const [newTask, setNewTask]   = useState("");
+  const [newForm, setNewForm]   = useState({label:"", url:""});
+  const [showAdd, setShowAdd]   = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const tasks = data.setupTasks || [
+    {id:"t1", label:"Switch to Business Account",    detail:"Settings > Account > Switch to Professional Account",       done:false},
+    {id:"t2", label:"Profile photo: your headshot",  detail:"Same as the website. Not the logo. People hire people.",    done:false},
+    {id:"t3", label:"Display name",                  detail:"Bear Virtual  —or—  Bear Virtual | Web & Content for Small Biz", done:false},
+    {id:"t4", label:"Bio (150 chars max)",            detail:"Websites + content for small businesses 🐻 | Home services · wellness · beauty | Book a free discovery call 👇", done:false},
+    {id:"t5", label:"Link in bio",                   detail:"Linktree with 3 links: Free Discovery Call · Services · FAQ", done:false},
+    {id:"t6", label:"Story Highlights (day 1)",      detail:"Our Work · Services · How It Works · Client Wins",          done:false},
+    {id:"t7", label:"Connect to Facebook Page",      detail:"Settings > Linked Accounts > Facebook. Enables auto-repost.", done:false},
+    {id:"t8", label:"Set up Meta Business Suite",    detail:"business.facebook.com — scheduling, insights, cross-posting", done:false},
+  ];
+
+  const forms = data.clientForms || [];
+
+  const toggleTask = (id) => upd({setupTasks: tasks.map(t => t.id===id ? {...t, done:!t.done} : t)});
+  const deleteTask = (id) => upd({setupTasks: tasks.filter(t => t.id!==id)});
+  const addTask = () => {
+    if (!newTask.trim()) return;
+    upd({setupTasks: [...tasks, {id:"t"+Date.now(), label:newTask.trim(), detail:"", done:false}]});
+    setNewTask(""); setShowAdd(false);
+  };
+  const addForm = () => {
+    if (!newForm.label.trim()) return;
+    upd({clientForms: [...forms, {id:"f"+Date.now(), ...newForm}]});
+    setNewForm({label:"",url:""}); setShowAddForm(false);
+  };
+  const deleteForm = (id) => upd({clientForms: forms.filter(f => f.id!==id)});
+
+  const btn = (primary) => ({
+    padding:"6px 14px", borderRadius:6, border:"none", cursor:"pointer",
+    fontSize:12, fontFamily:theme.font, fontWeight:600,
+    background:primary?theme.primary:theme.sectionBg,
+    color:primary?"#FFFFFF":"#111111", transition:"all 0.15s",
+  });
+
+  const completedCount = tasks.filter(t=>t.done).length;
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
+        <h2 style={{fontSize:18,fontWeight:700,color:"#111111",margin:0}}>Account Setup</h2>
+        <span style={{fontSize:13,color:"#111111"}}>{completedCount}/{tasks.length} complete</span>
+      </div>
+      <p style={{color:"#111111",fontSize:13,marginBottom:18,fontStyle:"italic"}}>
+        One-time setup tasks. Check off as you go. Add tasks specific to your client.
+      </p>
+
+      {/* Progress bar */}
+      <div style={{background:theme.sectionBg,borderRadius:20,height:6,marginBottom:20,overflow:"hidden"}}>
+        <div style={{background:theme.primary,height:"100%",borderRadius:20,
+          width:`${tasks.length ? (completedCount/tasks.length)*100 : 0}%`,transition:"width 0.3s"}}/>
+      </div>
+
+      {/* Tasks */}
+      {tasks.map(task => (
+        <div key={task.id} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"12px 14px",
+          background:task.done?"#EBF0FC":"#FFFFFF",
+          border:`2px solid ${task.done?theme.primary:theme.border}`,
+          borderRadius:10,marginBottom:7,transition:"all 0.18s"}}>
+          <div onClick={()=>toggleTask(task.id)}
+            style={{width:20,height:20,borderRadius:5,flexShrink:0,marginTop:1,cursor:"pointer",
+              border:`2px solid ${task.done?theme.primary:theme.border}`,
+              background:task.done?theme.primary:"transparent",
+              display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.18s"}}>
+            {task.done && <span style={{color:"#FFFFFF",fontSize:11,fontWeight:700}}>✓</span>}
+          </div>
+          <div style={{flex:1}} onClick={()=>toggleTask(task.id)}>
+            <div style={{fontWeight:700,fontSize:13,color:"#111111",
+              textDecoration:task.done?"line-through":"none",marginBottom:2,cursor:"pointer"}}>{task.label}</div>
+            {task.detail && <div style={{fontSize:12,color:"#111111",fontStyle:"italic",lineHeight:1.5}}>{task.detail}</div>}
+          </div>
+          {role.canEditIdeas && (
+            <button onClick={()=>deleteTask(task.id)}
+              style={{background:"transparent",border:"none",cursor:"pointer",color:"#111111",fontSize:16,padding:"0 4px",lineHeight:1,flexShrink:0}}>×</button>
+          )}
+        </div>
+      ))}
+
+      {/* Add task */}
+      {role.canEditIdeas && (
+        <div style={{marginBottom:24}}>
+          {showAdd ? (
+            <div style={{display:"flex",gap:8,marginTop:8}}>
+              <input value={newTask} onChange={e=>setNewTask(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&addTask()}
+                placeholder="New task..."
+                style={{flex:1,border:`1px solid ${theme.border}`,borderRadius:7,padding:"8px 12px",
+                  fontSize:13,fontFamily:theme.font,color:"#111111",background:"#FFFFFF"}}/>
+              <button style={btn(true)} onClick={addTask}>Add</button>
+              <button style={btn(false)} onClick={()=>{setShowAdd(false);setNewTask("");}}>Cancel</button>
             </div>
-            {[{title:"CHECK WEEKLY",color:"#111111",items:["Saves per post — target 5+ on Tips posts","Profile visits from posts","Link in bio clicks","Story poll responses and DM replies"]},
-              {title:"CHECK MONTHLY",color:"#111111",items:["Follower growth — niche-relevant only","Reach on Reels — broadest discovery surface","New profile visits from non-followers","Discovery calls booked — the primary goal"]},
-            ].map((s,i)=>(
-              <div key={i} style={{...card({marginBottom:9})}}>
-                <div style={{fontWeight:700,fontSize:12,color:s.color,letterSpacing:"1px",marginBottom:10}}>{s.title}</div>
-                {s.items.map((m,j)=>(
-                  <div key={j} style={{display:"flex",gap:8,padding:"7px 0",borderBottom:j<s.items.length-1?"1px solid #f0e8e0":"none"}}>
-                    <span style={{color:s.color,fontWeight:700,fontSize:13}}>→</span>
-                    <span style={{fontSize:13,color:"#111111"}}>{m}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
+          ) : (
+            <button style={{...btn(false),marginTop:8}} onClick={()=>setShowAdd(true)}>+ Add Task</button>
+          )}
+        </div>
+      )}
+
+      {/* Client Forms & Resources */}
+      <div style={{borderTop:`2px solid ${theme.border}`,paddingTop:20,marginTop:4}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:15,color:"#111111",marginBottom:2}}>Client Forms & Resources</div>
+            <div style={{fontSize:12,color:"#111111",fontStyle:"italic"}}>Drop intake forms, monthly update links, or any client reference docs here.</div>
+          </div>
+          {role.canEditIdeas && (
+            <button style={btn(true)} onClick={()=>setShowAddForm(!showAddForm)}>+ Add Link</button>
+          )}
+        </div>
+
+        {forms.length === 0 && !showAddForm && (
+          <div style={{padding:"20px 16px",background:theme.sectionBg,borderRadius:10,textAlign:"center",
+            border:`1px dashed ${theme.border}`}}>
+            <div style={{fontSize:13,color:"#111111",marginBottom:4}}>No forms added yet.</div>
+            <div style={{fontSize:12,color:"#111111",fontStyle:"italic"}}>Add links to your intake form, monthly update form, or any Google Docs your client needs.</div>
+          </div>
+        )}
+
+        {forms.map(form => (
+          <div key={form.id} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",
+            background:"#FFFFFF",border:`1px solid ${theme.border}`,borderRadius:10,marginBottom:7}}>
+            <span style={{fontSize:18}}>📋</span>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#111111"}}>{form.label}</div>
+              {form.url && (
+                <a href={form.url} target="_blank" rel="noreferrer"
+                  style={{fontSize:12,color:theme.primary,textDecoration:"none",fontStyle:"italic"}}>
+                  {form.url.length>50 ? form.url.slice(0,50)+"..." : form.url}
+                </a>
+              )}
+            </div>
+            {form.url && (
+              <a href={form.url} target="_blank" rel="noreferrer"
+                style={{...btn(true),textDecoration:"none",fontSize:11}}>Open →</a>
+            )}
+            {role.canEditIdeas && (
+              <button onClick={()=>deleteForm(form.id)}
+                style={{background:"transparent",border:"none",cursor:"pointer",color:"#111111",fontSize:16,padding:"0 4px"}}>×</button>
+            )}
+          </div>
+        ))}
+
+        {showAddForm && role.canEditIdeas && (
+          <div style={{background:theme.sectionBg,borderRadius:10,padding:14,marginTop:8,border:`1px solid ${theme.border}`}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#111111",marginBottom:10}}>ADD FORM OR RESOURCE</div>
+            <input value={newForm.label} onChange={e=>setNewForm(f=>({...f,label:e.target.value}))}
+              placeholder="Label (e.g. Monthly Update Form)"
+              style={{width:"100%",border:`1px solid ${theme.border}`,borderRadius:7,padding:"8px 12px",
+                fontSize:13,fontFamily:theme.font,color:"#111111",background:"#FFFFFF",marginBottom:8,boxSizing:"border-box"}}/>
+            <input value={newForm.url} onChange={e=>setNewForm(f=>({...f,url:e.target.value}))}
+              placeholder="URL (e.g. https://forms.google.com/...)"
+              style={{width:"100%",border:`1px solid ${theme.border}`,borderRadius:7,padding:"8px 12px",
+                fontSize:13,fontFamily:theme.font,color:"#111111",background:"#FFFFFF",marginBottom:10,boxSizing:"border-box"}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button style={btn(true)} onClick={addForm}>Save</button>
+              <button style={btn(false)} onClick={()=>{setShowAddForm(false);setNewForm({label:"",url:""});}}>Cancel</button>
+            </div>
           </div>
         )}
       </div>
@@ -1168,21 +1307,59 @@ export default function App() {
   );
 }
 
-function SetupItem({label,detail}) {
-  const [checked,setChecked] = useState(false);
+// ─── KPI TAB ──────────────────────────────────────────────────────────────────
+function KPITab({ data, upd, role, theme }) {
+  // KPI values stored in data.kpis — editable, crosslinked to header subtitle
+  const kpis = data.kpis || {
+    goal:    "1 discovery call booked",
+    signal:  "Post Saves",
+    rhythm:  "4 posts + 3–5 stories/week",
+    watch:   "Link-in-bio clicks",
+  };
+  const setKpi = (k, v) => upd({kpis:{...kpis,[k]:v}});
+
+  const KPICard = ({k, label, note, bg}) => (
+    <div style={{background:bg,border:`1px solid ${theme.border}`,borderRadius:12,padding:14}}>
+      <div style={{fontSize:11,fontWeight:700,color:"#111111",letterSpacing:"1px",marginBottom:6}}>{label.toUpperCase()}</div>
+      <InlineEdit value={kpis[k]} disabled={!role.canEditCalendar}
+        onChange={v=>setKpi(k,v)}
+        style={{fontSize:14,fontWeight:700,color:"#111111",display:"block",marginBottom:6}}/>
+      <p style={{fontSize:12,color:"#111111",margin:0,lineHeight:1.5}}>{note}</p>
+    </div>
+  );
+
   return (
-    <div onClick={()=>setChecked(!checked)} style={{display:"flex",gap:11,alignItems:"flex-start",padding:"12px 14px",
-      background:checked?"#EBF4FF":_theme.cardBg,border:`2px solid ${checked?_theme.primary:_theme.border}`,
-      borderRadius:10,marginBottom:7,cursor:"pointer",transition:"all 0.18s"}}>
-      <div style={{width:19,height:19,borderRadius:5,border:`2px solid ${checked?_theme.primary:_theme.border}`,
-        background:checked?_theme.primary:"transparent",display:"flex",alignItems:"center",justifyContent:"center",
-        flexShrink:0,marginTop:2,transition:"all 0.18s"}}>
-        {checked&&<span style={{color:"white",fontSize:12,fontWeight:700}}>✓</span>}
+    <div>
+      <h2 style={{fontSize:18,fontWeight:700,color:"#111111",margin:"0 0 4px"}}>KPIs & Success Metrics</h2>
+      <p style={{color:"#111111",fontSize:13,marginBottom:6,fontStyle:"italic"}}>
+        Click any value to edit. Posting Rhythm updates the header subtitle automatically.
+      </p>
+      <div style={{fontSize:12,color:"#111111",fontStyle:"italic",marginBottom:18,
+        padding:"8px 12px",background:theme.sectionBg,borderRadius:7,border:`1px solid ${theme.border}`}}>
+        💡 Tip: The Posting Rhythm value appears in the header bar. Editing it here keeps everything in sync.
       </div>
-      <div>
-        <div style={{fontWeight:700,fontSize:13,color:checked?_theme.primary:_theme.textPrimary,textDecoration:checked?"line-through":"none",marginBottom:2}}>{label}</div>
-        <div style={{fontSize:12,color:"#111111",fontStyle:"italic",lineHeight:1.5}}>{detail}</div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        <KPICard k="goal"   label="Month 1 Goal"    note="Set a sustainable baseline. Build from there."           bg="#EBF0FC"/>
+        <KPICard k="signal" label="Best Signal"      note="Saves = 'I'm coming back to this.' Far better than likes." bg="#F0F4FA"/>
+        <KPICard k="rhythm" label="Posting Rhythm"   note="This value also appears in the header bar."              bg="#F0F4FA"/>
+        <KPICard k="watch"  label="Watch This"       note="Profile visits = vanity. Link clicks = moving toward booking." bg="#EBF0FC"/>
       </div>
+
+      {[{title:"CHECK WEEKLY",  items:["Saves per post — target 5+ on Tips posts","Profile visits from posts","Link in bio clicks","Story poll responses and DM replies"]},
+        {title:"CHECK MONTHLY", items:["Follower growth — niche-relevant only","Reach on Reels — broadest discovery surface","New profile visits from non-followers","Discovery calls booked — the primary goal"]},
+      ].map((s,i)=>(
+        <div key={i} style={{background:"#FFFFFF",borderRadius:12,padding:16,border:`1px solid ${theme.border}`,marginBottom:9}}>
+          <div style={{fontWeight:700,fontSize:12,color:"#111111",letterSpacing:"1px",marginBottom:10}}>{s.title}</div>
+          {s.items.map((m,j)=>(
+            <div key={j} style={{display:"flex",gap:8,padding:"7px 0",
+              borderBottom:j<s.items.length-1?`1px solid ${theme.divider}`:"none"}}>
+              <span style={{color:"#111111",fontWeight:700,fontSize:13}}>→</span>
+              <span style={{fontSize:13,color:"#111111"}}>{m}</span>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
